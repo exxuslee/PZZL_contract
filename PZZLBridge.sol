@@ -60,7 +60,7 @@ contract PZZLBridge {
 
     uint256 private reentrancyStatus;
 
-    event TokenDeposit(address indexed account, uint256 amount, uint256 destChainId);
+    event TokenDeposit(address indexed account, uint256 amount);
     event TokenWithdraw(bytes32 indexed requestId, address indexed account, uint256 amount);
     event RescueToken(address indexed tokenContract, address indexed receiver, uint256 amount);
     event OperatorUpdated(address indexed operator, bool allowed);
@@ -122,20 +122,19 @@ contract PZZLBridge {
     /// @notice Deposits PZZL into the bridge to be released on the destination chain.
     ///         Caller must first call `token.approve(bridge, amount)`.
     /// @param amount Amount of PZZL to deposit.
-    /// @param destChainId Identifier of the destination chain (interpreted off-chain).
-    function deposit(uint256 amount, uint256 destChainId) external nonReentrant whenNotPaused {
+    function deposit(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
 
         IERC20(pzzlTokenContract).safeTransferFrom(msg.sender, address(this), amount);
 
-        emit TokenDeposit(msg.sender, amount, destChainId);
+        emit TokenDeposit(msg.sender, amount);
     }
 
     // ─────────────────────────────────────────
     //  Withdrawals (operator-gated)
     // ─────────────────────────────────────────
 
-    function withdrawToken(
+    function withdraw(
         address receiverAddress,
         uint256 amount,
         bytes32 requestId
