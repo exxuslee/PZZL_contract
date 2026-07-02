@@ -2,10 +2,7 @@
 pragma solidity ^0.8.20;
 
 /// @title PZZLToken
-/// @notice ERC-20 token with a fixed initial supply of 10 billion PZZL.
-/// @dev Includes allowance helpers, infinite-allowance optimization, two-step ownership,
-///      and custom errors for gas efficiency. No bridge logic — all bridging is handled
-///      by the separate PZZLBridge contract via standard approve/transferFrom.
+/// @notice ERC-20 token with EIP-2612 permit support, fixed initial supply of 10 billion PZZL.
 contract PZZLToken {
     string public constant name = "PZZL";
     string public constant symbol = "PZZL";
@@ -17,6 +14,13 @@ contract PZZLToken {
 
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
+    mapping(address => uint256) public nonces;
+
+    bytes32 public constant PERMIT_TYPEHASH =
+    keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
+    uint256 private immutable _CACHED_CHAIN_ID;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -26,10 +30,15 @@ contract PZZLToken {
     error InsufficientBalance();
     error InsufficientAllowance();
     error AllowanceBelowZero();
+    error PermitExpired();
+    error InvalidSignature();
 
     constructor() {
         totalSupply = INITIAL_SUPPLY;
         balanceOf[msg.sender] = INITIAL_SUPPLY;
+
+        _CACHED_CHAIN_ID = block.chainid;
+        _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator();
 
         emit Transfer(address(0), msg.sender, INITIAL_SUPPLY);
     }
@@ -79,6 +88,50 @@ contract PZZLToken {
             _approve(msg.sender, spender, current - subtractedValue);
         }
         return true;
+    }
+
+    // ─────────────────────────────────────────
+    //  EIP-2612 permit
+    // ─────────────────────────────────────────
+
+    function DOMAIN_SEPARATOR() public view returns (bytes32) {
+        return block.chainid == _CACHED_CHAIN_ID ? _CACHED_DOMAIN_SEPARATOR : _buildDomainSeparator();
+    }
+
+    /// @notice Sets `allowance[owner][spender] = value` via an off-chain signature,
+    ///         avoiding a separate on-chain approve transaction.
+    function permit(
+        address tokenOwner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        if (block.timestamp > deadline) revert PermitExpired();
+
+        bytes32 structHash = keccak256(
+            abi.encode(PERMIT_TYPEHASH, tokenOwner, spender, value, nonces[tokenOwner]++, deadline)
+        );
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), structHash));
+
+        address recovered = ecrecover(digest, v, r, s);
+        if (recovered == address(0) || recovered != tokenOwner) revert InvalidSignature();
+
+        _approve(tokenOwner, spender, value);
+    }
+
+    function _buildDomainSeparator() private view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(name)),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     // ─────────────────────────────────────────

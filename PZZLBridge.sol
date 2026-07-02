@@ -1,9 +1,22 @@
 // SPDX-License-Identifier: MIT
+// 0x5228d0ddaf2E3d2260Ea4763D4d43AE9Ba634A84
 pragma solidity ^0.8.20;
 
 interface IERC20 {
     function transfer(address to, uint256 value) external returns (bool);
     function transferFrom(address from, address to, uint256 value) external returns (bool);
+}
+
+interface IERC20Permit is IERC20 {
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 }
 
 library SafeERC20 {
@@ -125,6 +138,23 @@ contract PZZLBridge {
     function deposit(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
 
+        IERC20(pzzlTokenContract).safeTransferFrom(msg.sender, address(this), amount);
+
+        emit TokenDeposit(msg.sender, amount);
+    }
+
+    /// @notice Deposits PZZL in a single transaction using an EIP-2612 permit signature,
+    ///         eliminating the need for a separate approve() transaction.
+    function depositWithPermit(
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant whenNotPaused {
+        if (amount == 0) revert ZeroAmount();
+
+        IERC20Permit(pzzlTokenContract).permit(msg.sender, address(this), amount, deadline, v, r, s);
         IERC20(pzzlTokenContract).safeTransferFrom(msg.sender, address(this), amount);
 
         emit TokenDeposit(msg.sender, amount);
