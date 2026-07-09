@@ -2,9 +2,9 @@
 // 0x07d29020fc6535de0508b47e35e395ce346de582
 pragma solidity ^0.8.20;
 
-import "./PZZLBridgeCommon.sol";
-import "./PZZLBridgeAdmin.sol";
-import "./PZZLBridgeHistory.sol";
+import {PZZLBridgeAdmin} from "./PZZLBridgeAdmin.sol";
+import {SafeERC20, IERC20, IERC20Permit} from "./PZZLBridgeCommon.sol";
+import {PZZLBridgeHistory} from "./PZZLBridgeHistory.sol";
 
 /// @title PZZLBridge
 /// @notice Holds PZZL deposits (via explicit deposit() + approve/transferFrom) and allows
@@ -21,8 +21,8 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
 
     uint256 private reentrancyStatus;
 
-    event TokenDeposit(uint256 indexed index, address indexed account, uint256 amount, uint256 timestamp);
-    event TokenWithdraw(uint256 indexed index, bytes32 indexed requestId, address indexed account, uint256 amount);
+    event TokenDeposit(uint256 indexed index, bytes32 indexed account, uint256 amount, uint256 timestamp);
+    event TokenWithdraw(uint256 indexed index, bytes32 indexed requestId, bytes32 indexed account, address recipient, uint256 amount);
     event RescueToken(address indexed tokenContract, address indexed receiver, uint256 amount);
 
     error ZeroAmount();
@@ -42,17 +42,18 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
         reentrancyStatus = NOT_ENTERED;
     }
 
-    function deposit(uint256 amount) external nonReentrant whenNotPaused {
+    function deposit(bytes32 account, uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
 
         IERC20(pzzlTokenContract).safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 depositIndex = _recordDeposit(msg.sender, amount);
+        uint256 depositIndex = _recordDeposit(account, msg.sender, amount);
 
-        emit TokenDeposit(depositIndex, msg.sender, amount, block.timestamp);
+        emit TokenDeposit(depositIndex, account, amount, block.timestamp);
     }
 
     function depositWithPermit(
+        bytes32 account,
         uint256 amount,
         uint256 deadline,
         uint8 v,
@@ -64,12 +65,13 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
         IERC20Permit(pzzlTokenContract).permit(msg.sender, address(this), amount, deadline, v, r, s);
         IERC20(pzzlTokenContract).safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 depositIndex = _recordDeposit(msg.sender, amount);
+        uint256 depositIndex = _recordDeposit(account, msg.sender, amount);
 
-        emit TokenDeposit(depositIndex, msg.sender, amount, block.timestamp);
+        emit TokenDeposit(depositIndex, account, amount, block.timestamp);
     }
 
     function withdraw(
+        bytes32 account,
         address receiverAddress,
         uint256 amount,
         bytes32 requestId
@@ -80,9 +82,9 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
 
         IERC20(pzzlTokenContract).safeTransfer(receiverAddress, amount);
 
-        uint256 withdrawIndex = _recordWithdraw(requestId, receiverAddress, amount);
+        uint256 withdrawIndex = _recordWithdraw(account, requestId, receiverAddress, amount);
 
-        emit TokenWithdraw(withdrawIndex, requestId, receiverAddress, amount);
+        emit TokenWithdraw(withdrawIndex, requestId, account, receiverAddress, amount);
     }
 
     // ─────────────────────────────────────────

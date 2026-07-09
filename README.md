@@ -17,15 +17,15 @@ Users deposit into the bridge with a standard two-step approve/deposit flow:
 
 ```solidity
 PZZLToken.approve(bridgeAddress, amount);
-PZZLBridge.deposit(amount, destChainId);
+PZZLBridge.deposit(account, amount);
 ```
 
-This emits `TokenDeposit(account, amount, destChainId)`, which the backend/relayer listens for to release the equivalent amount on the destination chain.
+`account` is a `bytes32` account key. Current clients use `keccak256(userId)` so deposits and withdrawals are credited to the exact app account, even when multiple accounts share the same EVM address. This emits `TokenDeposit(index, account, amount, timestamp)`.
 
 Operator withdrawals use:
 
 ```solidity
-withdrawToken(receiverAddress, amount, requestId)
+withdraw(account, receiverAddress, amount, requestId)
 ```
 
 `requestId` must be unique and non-zero. Reusing it reverts, which protects against accidental duplicate processing.
@@ -34,7 +34,7 @@ withdrawToken(receiverAddress, amount, requestId)
 
 - `setOperator(operator, allowed)` — grants or revokes withdrawal rights for an address.
 - `setPZZLTokenContract(newPZZLTokenContract)` — repoints the bridge to a different token address.
-- `pause()` / `unpause()` — halts or resumes `deposit` and `withdrawToken`.
+- `pause()` / `unpause()` — halts or resumes `deposit` and `withdraw`.
 - `transferOwnership(newOwner)` / `acceptOwnership()` — two-step ownership transfer.
 
 All admin functions are `onlyOwner`. Consider transferring ownership to a multisig rather than keeping a single EOA as owner.

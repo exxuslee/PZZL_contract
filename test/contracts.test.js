@@ -11,6 +11,15 @@ function compileContracts() {
     "PZZLToken.sol": {
       content: fs.readFileSync(path.join(root, "PZZLToken.sol"), "utf8"),
     },
+    "PZZLBridgeAdmin.sol": {
+      content: fs.readFileSync(path.join(root, "PZZLBridgeAdmin.sol"), "utf8"),
+    },
+    "PZZLBridgeCommon.sol": {
+      content: fs.readFileSync(path.join(root, "PZZLBridgeCommon.sol"), "utf8"),
+    },
+    "PZZLBridgeHistory.sol": {
+      content: fs.readFileSync(path.join(root, "PZZLBridgeHistory.sol"), "utf8"),
+    },
     "PZZLBridge.sol": {
       content: fs.readFileSync(path.join(root, "PZZLBridge.sol"), "utf8"),
     },
@@ -52,11 +61,11 @@ test("contracts compile without Solidity errors", () => {
 test("bridge withdrawal API is restricted to configured PZZL token", () => {
   const contracts = compileContracts();
   const bridgeAbi = contracts["PZZLBridge.sol"].PZZLBridge.abi;
-  const withdrawToken = functionAbi(bridgeAbi, "withdrawToken");
+  const withdraw = functionAbi(bridgeAbi, "withdraw");
 
   assert.deepEqual(
-      withdrawToken.inputs.map((input) => input.type),
-      ["address", "uint256", "bytes32"],
+      withdraw.inputs.map((input) => input.type),
+      ["bytes32", "address", "uint256", "bytes32"],
   );
 });
 
@@ -72,7 +81,8 @@ test("bridge exposes deposit, operational controls and audit events", () => {
 
   [
     "deposit",
-    "withdrawToken",
+    "depositWithPermit",
+    "withdraw",
     "rescueToken",
     "setOperator",
     "setPZZLTokenContract",
@@ -95,14 +105,14 @@ test("bridge exposes deposit, operational controls and audit events", () => {
   ].forEach((name) => assert.ok(eventNames.has(name), `${name} is missing`));
 });
 
-test("bridge deposit requires nonzero amount and forwards destChainId", () => {
+test("bridge deposit requires nonzero amount and account key", () => {
   const contracts = compileContracts();
   const bridgeAbi = contracts["PZZLBridge.sol"].PZZLBridge.abi;
   const deposit = functionAbi(bridgeAbi, "deposit");
 
   assert.deepEqual(
       deposit.inputs.map((input) => input.type),
-      ["uint256", "uint256"],
+      ["bytes32", "uint256"],
   );
 });
 
