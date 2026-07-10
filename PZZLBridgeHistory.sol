@@ -23,48 +23,44 @@ pragma solidity ^0.8.20;
 ///      guessing at ordering.
 abstract contract PZZLBridgeHistory {
     struct DepositRecord {
-        bytes32 account;
-        address sender;
+        address account;
         uint256 amount;
         uint256 timestamp;
     }
 
     struct WithdrawRecord {
-        bytes32 account;
         bytes32 requestId;
-        address recipient;
+        address account;
         uint256 amount;
         uint256 timestamp;
     }
 
-    mapping(bytes32 => DepositRecord[]) private depositsByAccount;
-    mapping(bytes32 => WithdrawRecord[]) private withdrawalsByAccount;
+    mapping(address => DepositRecord[]) private depositsByAccount;
+    mapping(address => WithdrawRecord[]) private withdrawalsByAccount;
 
     // ───────────── Writes (internal — only callable from PZZLBridge itself) ─────────────
 
     /// @return accountIndex Position of the new record in depositsByAccount[account] —
     ///         same value should be emitted as `indexed index` in TokenDeposit.
-    function _recordDeposit(bytes32 account, address sender, uint256 amount) internal returns (uint256 accountIndex) {
+    function _recordDeposit(address account, uint256 amount) internal returns (uint256 accountIndex) {
         accountIndex = depositsByAccount[account].length;
         depositsByAccount[account].push(
-            DepositRecord({account: account, sender: sender, amount: amount, timestamp: block.timestamp})
+            DepositRecord({account: account, amount: amount, timestamp: block.timestamp})
         );
     }
 
     /// @return accountIndex Position of the new record in withdrawalsByAccount[account] —
     ///         same value should be emitted as `indexed index` in TokenWithdraw.
     function _recordWithdraw(
-        bytes32 account,
         bytes32 requestId,
-        address recipient,
+        address account,
         uint256 amount
     ) internal returns (uint256 accountIndex) {
         accountIndex = withdrawalsByAccount[account].length;
         withdrawalsByAccount[account].push(
             WithdrawRecord({
-                account: account,
                 requestId: requestId,
-                recipient: recipient,
+                account: account,
                 amount: amount,
                 timestamp: block.timestamp
             })
@@ -74,19 +70,19 @@ abstract contract PZZLBridgeHistory {
     // ───────────── Public read methods ─────────────
 
     /// @notice How many deposits a given account has made.
-    function depositsCountOf(bytes32 account) external view returns (uint256) {
+    function depositsCountOf(address account) external view returns (uint256) {
         return depositsByAccount[account].length;
     }
 
     /// @notice How many withdrawals a given account has received.
-    function withdrawalsCountOf(bytes32 account) external view returns (uint256) {
+    function withdrawalsCountOf(address account) external view returns (uint256) {
         return withdrawalsByAccount[account].length;
     }
 
     /// @notice Paginated deposit history for `account` — safer against gas limits
     ///         than returning the whole array if an account has a very long history.
     function getDepositsOfPaged(
-        bytes32 account,
+        address account,
         uint256 offset,
         uint256 limit
     ) external view returns (DepositRecord[] memory result) {
@@ -106,7 +102,7 @@ abstract contract PZZLBridgeHistory {
 
     /// @notice Paginated withdrawal history for `account`.
     function getWithdrawalsOfPaged(
-        bytes32 account,
+        address account,
         uint256 offset,
         uint256 limit
     ) external view returns (WithdrawRecord[] memory result) {

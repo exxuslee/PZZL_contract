@@ -65,7 +65,7 @@ test("bridge withdrawal API is restricted to configured PZZL token", () => {
 
   assert.deepEqual(
       withdraw.inputs.map((input) => input.type),
-      ["bytes32", "address", "uint256", "bytes32"],
+      ["address", "uint256", "bytes32"],
   );
 });
 
@@ -105,14 +105,14 @@ test("bridge exposes deposit, operational controls and audit events", () => {
   ].forEach((name) => assert.ok(eventNames.has(name), `${name} is missing`));
 });
 
-test("bridge deposit requires nonzero amount and account key", () => {
+test("bridge deposit requires nonzero amount", () => {
   const contracts = compileContracts();
   const bridgeAbi = contracts["PZZLBridge.sol"].PZZLBridge.abi;
   const deposit = functionAbi(bridgeAbi, "deposit");
 
   assert.deepEqual(
       deposit.inputs.map((input) => input.type),
-      ["bytes32", "uint256"],
+      ["uint256"],
   );
 });
 

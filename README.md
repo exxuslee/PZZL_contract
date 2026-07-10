@@ -17,15 +17,15 @@ Users deposit into the bridge with a standard two-step approve/deposit flow:
 
 ```solidity
 PZZLToken.approve(bridgeAddress, amount);
-PZZLBridge.deposit(account, amount);
+PZZLBridge.deposit(amount);
 ```
 
-`account` is a `bytes32` account key. Current clients use `keccak256(userId)` so deposits and withdrawals are credited to the exact app account, even when multiple accounts share the same EVM address. This emits `TokenDeposit(index, account, amount, timestamp)`.
+This emits `TokenDeposit(index, account, amount, timestamp)`, where `account` is the sender address.
 
 Operator withdrawals use:
 
 ```solidity
-withdraw(account, receiverAddress, amount, requestId)
+withdraw(receiverAddress, amount, requestId)
 ```
 
 `requestId` must be unique and non-zero. Reusing it reverts, which protects against accidental duplicate processing.
