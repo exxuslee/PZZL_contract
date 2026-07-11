@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 /// @title PZZLBridgeAdmin
 /// @notice Base contract holding all admin/ownership/config state for the
 ///         PZZL bridge: owner, pending owner, operator whitelist, pause
-///         switch, and the address of the PZZL token being bridged.
+///         switch, and the immutable address of the PZZL token being bridged.
 /// @dev This is an `abstract contract`, not a standalone deployable
-///      contract — it exists purely to keep admin-related state, events,
+///      contract - it exists purely to keep admin-related state, events,
 ///      errors, and functions in their own file. The final `PZZLBridge`
 ///      contract inherits from this directly, so there is only ONE
 ///      deployed contract and ONE storage layout; there are no external
@@ -14,13 +14,12 @@ pragma solidity ^0.8.20;
 abstract contract PZZLBridgeAdmin {
     address public owner;
     address public pendingOwner;
-    address public pzzlTokenContract;
+    address public immutable pzzlToken;
     bool public paused;
 
     mapping(address => bool) public operators;
 
     event OperatorUpdated(address indexed operator, bool allowed);
-    event PZZLTokenContractUpdated(address indexed previousPZZLTokenContract, address indexed newPZZLTokenContract);
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event Paused(address indexed account);
@@ -47,10 +46,10 @@ abstract contract PZZLBridgeAdmin {
         _;
     }
 
-    constructor(address initialPZZLTokenContract) {
-        if (initialPZZLTokenContract == address(0)) revert ZeroAddress();
+    constructor(address initialPZZLToken) {
+        if (initialPZZLToken == address(0)) revert ZeroAddress();
 
-        pzzlTokenContract = initialPZZLTokenContract;
+        pzzlToken = initialPZZLToken;
         owner = msg.sender;
         operators[msg.sender] = true;
 
@@ -63,15 +62,6 @@ abstract contract PZZLBridgeAdmin {
         operators[operator] = allowed;
 
         emit OperatorUpdated(operator, allowed);
-    }
-
-    function setPZZLTokenContract(address newPZZLTokenContract) external onlyOwner {
-        if (newPZZLTokenContract == address(0)) revert ZeroAddress();
-
-        address previousPZZLTokenContract = pzzlTokenContract;
-        pzzlTokenContract = newPZZLTokenContract;
-
-        emit PZZLTokenContractUpdated(previousPZZLTokenContract, newPZZLTokenContract);
     }
 
     function pause() external onlyOwner {

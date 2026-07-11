@@ -7,49 +7,43 @@ pragma solidity ^0.8.20;
 ///         "what's been credited to me" via a view method, instead of
 ///         scanning past events.
 /// @dev This is an `abstract contract`, not a standalone deployable
-///      contract — it exists purely to keep history-related state, events,
+///      contract - it exists purely to keep history-related state, events,
 ///      and view methods in their own file. The final `PZZLBridge` contract
 ///      inherits from this directly (one deployed contract, one storage
 ///      layout). `_recordDeposit` / `_recordWithdraw` are `internal`, so
 ///      only code inside PZZLBridge itself (i.e. its own deposit/withdraw
-///      functions) can ever write a record — no separate access-control
+///      functions) can ever write a record - no separate access-control
 ///      check or "which contract is allowed to write" wiring is needed.
 ///
 ///      Deposits and withdrawals are stored ONLY per-account (no global
-///      flat array, no global counter) — each write costs a single push,
+///      flat array, no global counter) - each write costs a single push,
 ///      and the returned index doubles as the position both in storage and
 ///      in the corresponding TokenDeposit/TokenWithdraw event, so a client
 ///      can pinpoint the exact transaction hash for any record without
 ///      guessing at ordering.
 abstract contract PZZLBridgeHistory {
     struct DepositRecord {
-        address account;
         uint256 amount;
-        uint256 timestamp;
     }
 
     struct WithdrawRecord {
         bytes32 requestId;
-        address account;
         uint256 amount;
-        uint256 timestamp;
     }
 
     mapping(address => DepositRecord[]) private depositsByAccount;
     mapping(address => WithdrawRecord[]) private withdrawalsByAccount;
 
-    // ───────────── Writes (internal — only callable from PZZLBridge itself) ─────────────
+    // Writes (internal - only callable from PZZLBridge itself)
 
-    /// @return accountIndex Position of the new record in depositsByAccount[account] —
+    /// @return accountIndex Position of the new record in depositsByAccount[account] -
     ///         same value should be emitted as `indexed index` in TokenDeposit.
     function _recordDeposit(address account, uint256 amount) internal returns (uint256 accountIndex) {
         accountIndex = depositsByAccount[account].length;
-        depositsByAccount[account].push(
-            DepositRecord({account: account, amount: amount, timestamp: block.timestamp})
-        );
+        depositsByAccount[account].push(DepositRecord({amount: amount}));
     }
 
-    /// @return accountIndex Position of the new record in withdrawalsByAccount[account] —
+    /// @return accountIndex Position of the new record in withdrawalsByAccount[account] -
     ///         same value should be emitted as `indexed index` in TokenWithdraw.
     function _recordWithdraw(
         bytes32 requestId,
@@ -57,17 +51,10 @@ abstract contract PZZLBridgeHistory {
         uint256 amount
     ) internal returns (uint256 accountIndex) {
         accountIndex = withdrawalsByAccount[account].length;
-        withdrawalsByAccount[account].push(
-            WithdrawRecord({
-                requestId: requestId,
-                account: account,
-                amount: amount,
-                timestamp: block.timestamp
-            })
-        );
+        withdrawalsByAccount[account].push(WithdrawRecord({requestId: requestId, amount: amount}));
     }
 
-    // ───────────── Public read methods ─────────────
+    // Public read methods
 
     /// @notice How many deposits a given account has made.
     function depositsCountOf(address account) external view returns (uint256) {
@@ -79,7 +66,7 @@ abstract contract PZZLBridgeHistory {
         return withdrawalsByAccount[account].length;
     }
 
-    /// @notice Paginated deposit history for `account` — safer against gas limits
+    /// @notice Paginated deposit history for `account` - safer against gas limits
     ///         than returning the whole array if an account has a very long history.
     function getDepositsOfPaged(
         address account,

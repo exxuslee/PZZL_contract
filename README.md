@@ -5,7 +5,7 @@ This folder contains the PZZL ERC-20 token and the PZZL bridge custody contract.
 ## Contracts
 
 - `PZZLToken.sol` mints a fixed initial supply of `10,000,000,000 PZZL` to the deployer. The token is fully immutable: there is no owner, no minting after deployment, and no bridge-coupling logic. Bridging is handled entirely by the separate `PZZLBridge` contract through the standard `approve` / `transferFrom` flow.
-- `PZZLBridge.sol` holds PZZL deposits and lets approved operators withdraw only the configured PZZL token to users.
+- `PZZLBridge.sol` holds PZZL deposits and lets approved operators withdraw only the configured PZZL token to users. The PZZL token address is fixed at deployment.
 
 ## Bridge Operations
 
@@ -32,10 +32,9 @@ withdraw(receiverAddress, amount, requestId)
 
 ## Admin Controls
 
-- `setOperator(operator, allowed)` — grants or revokes withdrawal rights for an address.
-- `setPZZLTokenContract(newPZZLTokenContract)` — repoints the bridge to a different token address.
-- `pause()` / `unpause()` — halts or resumes `deposit` and `withdraw`.
-- `transferOwnership(newOwner)` / `acceptOwnership()` — two-step ownership transfer.
+- `setOperator(operator, allowed)` - grants or revokes withdrawal rights for an address.
+- `pause()` / `unpause()` - halts or resumes `deposit` and `withdraw`.
+- `transferOwnership(newOwner)` / `acceptOwnership()` - two-step ownership transfer.
 
 All admin functions are `onlyOwner`. Consider transferring ownership to a multisig rather than keeping a single EOA as owner.
 
@@ -47,7 +46,7 @@ The owner can rescue non-PZZL ERC-20 tokens sent to the bridge by mistake:
 rescueToken(tokenContract, receiverAddress, amount)
 ```
 
-`rescueToken` intentionally reverts (`CannotRescuePZZL`) for the configured PZZL token — deposited/owed PZZL can never be swept out through this function.
+`rescueToken` intentionally reverts (`CannotRescuePZZL`) for the configured PZZL token - deposited/owed PZZL can never be swept out through this function.
 
 ## Tests
 

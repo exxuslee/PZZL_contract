@@ -85,7 +85,6 @@ test("bridge exposes deposit, operational controls and audit events", () => {
     "withdraw",
     "rescueToken",
     "setOperator",
-    "setPZZLTokenContract",
     "pause",
     "unpause",
     "transferOwnership",
@@ -97,7 +96,6 @@ test("bridge exposes deposit, operational controls and audit events", () => {
     "TokenWithdraw",
     "RescueToken",
     "OperatorUpdated",
-    "PZZLTokenContractUpdated",
     "OwnershipTransferStarted",
     "OwnershipTransferred",
     "Paused",
@@ -114,6 +112,22 @@ test("bridge deposit requires nonzero amount", () => {
       deposit.inputs.map((input) => input.type),
       ["uint256"],
   );
+});
+
+test("bridge keeps token address immutable and request processing private", () => {
+  const contracts = compileContracts();
+  const bridgeAbi = contracts["PZZLBridge.sol"].PZZLBridge.abi;
+  const functionNames = new Set(
+      bridgeAbi.filter((item) => item.type === "function").map((item) => item.name),
+  );
+  const eventNames = new Set(
+      bridgeAbi.filter((item) => item.type === "event").map((item) => item.name),
+  );
+
+  assert.ok(functionNames.has("pzzlTokenContract"));
+  assert.ok(!functionNames.has("setPZZLTokenContract"));
+  assert.ok(!functionNames.has("processedRequests"));
+  assert.ok(!eventNames.has("PZZLTokenContractUpdated"));
 });
 
 test("bridge rescueToken cannot target the configured PZZL token", () => {
@@ -174,7 +188,7 @@ test("token has fixed supply, standard ERC-20 API and zero-address guards", () =
   ].forEach((name) => assert.ok(errorNames.has(name), `${name} is missing`));
 });
 
-test("token is fully immutable — no owner, ownership, or bridge-coupling functions", () => {
+test("token is fully immutable - no owner, ownership, or bridge-coupling functions", () => {
   const contracts = compileContracts();
   const tokenAbi = contracts["PZZLToken.sol"].PZZLToken.abi;
   const functionNames = new Set(

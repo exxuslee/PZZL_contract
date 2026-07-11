@@ -44,9 +44,7 @@ contract PZZLToken {
         emit Transfer(address(0), msg.sender, INITIAL_SUPPLY);
     }
 
-    // ─────────────────────────────────────────
     //  ERC-20 core
-    // ─────────────────────────────────────────
 
     function transfer(address to, uint256 value) external returns (bool) {
         _transfer(msg.sender, to, value);
@@ -73,9 +71,7 @@ contract PZZLToken {
         return true;
     }
 
-    // ─────────────────────────────────────────
     //  Allowance helpers
-    // ─────────────────────────────────────────
 
     function increaseAllowance(address spender, uint256 addedValue) external returns (bool) {
         _approve(msg.sender, spender, allowance[msg.sender][spender] + addedValue);
@@ -91,9 +87,7 @@ contract PZZLToken {
         return true;
     }
 
-    // ─────────────────────────────────────────
     //  EIP-2612 permit
-    // ─────────────────────────────────────────
 
     function DOMAIN_SEPARATOR() public view returns (bytes32) {
         return block.chainid == _CACHED_CHAIN_ID ? _CACHED_DOMAIN_SEPARATOR : _buildDomainSeparator();
@@ -135,9 +129,7 @@ contract PZZLToken {
         );
     }
 
-    // ─────────────────────────────────────────
     //  Internal
-    // ─────────────────────────────────────────
 
     function _approve(address tokenOwner, address spender, uint256 value) private {
         if (spender == address(0)) revert ApproveToZeroAddress();

@@ -9,15 +9,14 @@ import {PZZLBridgeHistory} from "./PZZLBridgeHistory.sol";
 /// @title PZZLBridge
 /// @notice Holds PZZL deposits (via explicit deposit() + approve/transferFrom) and allows
 ///         approved operators to withdraw PZZL to users on withdrawal requests.
-///         Includes a pause switch and rescue functions for both PZZL-unrelated ERC-20
-///         tokens and accidentally sent native currency.
+///         Includes a pause switch and a rescue function for PZZL-unrelated ERC-20 tokens.
 contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
     using SafeERC20 for IERC20;
 
     uint256 private constant NOT_ENTERED = 1;
     uint256 private constant ENTERED = 2;
 
-    mapping(bytes32 => bool) public processedRequests;
+    mapping(bytes32 => bool) private processedRequests;
 
     uint256 private reentrancyStatus;
 
@@ -45,7 +44,7 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
     function deposit(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
 
-        IERC20(pzzlTokenContract).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(pzzlToken).safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 depositIndex = _recordDeposit(msg.sender, amount);
 
@@ -61,8 +60,8 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
     ) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
 
-        IERC20Permit(pzzlTokenContract).permit(msg.sender, address(this), amount, deadline, v, r, s);
-        IERC20(pzzlTokenContract).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20Permit(pzzlToken).permit(msg.sender, address(this), amount, deadline, v, r, s);
+        IERC20(pzzlToken).safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 depositIndex = _recordDeposit(msg.sender, amount);
 
@@ -78,33 +77,29 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
         if (amount == 0) revert ZeroAmount();
         _markRequestProcessed(requestId);
 
-        IERC20(pzzlTokenContract).safeTransfer(receiverAddress, amount);
+        IERC20(pzzlToken).safeTransfer(receiverAddress, amount);
 
         uint256 withdrawIndex = _recordWithdraw(requestId, receiverAddress, amount);
 
         emit TokenWithdraw(withdrawIndex, requestId, receiverAddress, amount);
     }
 
-    // ─────────────────────────────────────────
-    //  Rescue (owner-gated, cannot touch bridge-owed funds)
-    // ─────────────────────────────────────────
+    // Rescue (owner-gated, cannot touch bridge-owed funds)
 
     /// @notice Rescues ERC-20 tokens mistakenly sent to this contract.
-    /// @dev Always blocked for the current pzzlTokenContract — deposited/owed PZZL
+    /// @dev Always blocked for the current pzzlTokenContract - deposited/owed PZZL
     ///      can never be swept out via this function.
-    function rescueToken(address tokenContract, address receiverAddress, uint256 amount) external onlyOwner nonReentrant {
+    function rescueToken(address tokenContract, address receiverAddress, uint256 amount) external onlyOwner {
         if (tokenContract == address(0) || receiverAddress == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
-        if (tokenContract == pzzlTokenContract) revert CannotRescuePZZL();
+        if (tokenContract == pzzlToken) revert CannotRescuePZZL();
 
         IERC20(tokenContract).safeTransfer(receiverAddress, amount);
 
         emit RescueToken(tokenContract, receiverAddress, amount);
     }
 
-    // ─────────────────────────────────────────
-    //  Internal
-    // ─────────────────────────────────────────
+    // Internal
 
     function _markRequestProcessed(bytes32 requestId) private {
         if (requestId == bytes32(0)) revert ZeroRequestId();
