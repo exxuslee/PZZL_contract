@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-// 0x07d29020fc6535de0508b47e35e395ce346de582
-pragma solidity ^0.8.20;
+//
+pragma solidity ^0.8.26;
 
 import {PZZLBridgeAdmin} from "./PZZLBridgeAdmin.sol";
 import {SafeERC20, IERC20, IERC20Permit} from "./PZZLBridgeCommon.sol";
@@ -20,7 +20,7 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
 
     uint256 private reentrancyStatus;
 
-    event TokenDeposit(uint256 indexed index, address indexed account, uint256 amount, uint256 timestamp);
+    event TokenDeposit(uint256 indexed index, address indexed account, uint256 amount);
     event TokenWithdraw(uint256 indexed index, bytes32 indexed requestId, address indexed account, uint256 amount);
     event RescueToken(address indexed tokenContract, address indexed receiver, uint256 amount);
 
@@ -45,10 +45,8 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
         if (amount == 0) revert ZeroAmount();
 
         IERC20(pzzlToken).safeTransferFrom(msg.sender, address(this), amount);
-
         uint256 depositIndex = _recordDeposit(msg.sender, amount);
-
-        emit TokenDeposit(depositIndex, msg.sender, amount, block.timestamp);
+        emit TokenDeposit(depositIndex, msg.sender, amount);
     }
 
     function depositWithPermit(
@@ -62,10 +60,8 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
 
         IERC20Permit(pzzlToken).permit(msg.sender, address(this), amount, deadline, v, r, s);
         IERC20(pzzlToken).safeTransferFrom(msg.sender, address(this), amount);
-
         uint256 depositIndex = _recordDeposit(msg.sender, amount);
-
-        emit TokenDeposit(depositIndex, msg.sender, amount, block.timestamp);
+        emit TokenDeposit(depositIndex, msg.sender, amount);
     }
 
     function withdraw(
@@ -75,12 +71,10 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
     ) external onlyOperator nonReentrant whenNotPaused {
         if (receiverAddress == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
+
         _markRequestProcessed(requestId);
-
         IERC20(pzzlToken).safeTransfer(receiverAddress, amount);
-
         uint256 withdrawIndex = _recordWithdraw(requestId, receiverAddress, amount);
-
         emit TokenWithdraw(withdrawIndex, requestId, receiverAddress, amount);
     }
 
@@ -95,7 +89,6 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
         if (tokenContract == pzzlToken) revert CannotRescuePZZL();
 
         IERC20(tokenContract).safeTransfer(receiverAddress, amount);
-
         emit RescueToken(tokenContract, receiverAddress, amount);
     }
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import {IERC20, IERC20Permit} from "./PZZLBridgeCommon.sol";
 
@@ -23,8 +23,7 @@ contract PZZLToken is IERC20, IERC20Permit {
     keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     // secp256k1 curve order / 2 - upper bound for valid `s` (EIP-2 / malleability guard)
-    uint256 private constant _SECP256K1N_DIV_2 =
-    0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
+    uint256 private constant _SECP256K1N_DIV_2 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
 
     bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
     uint256 private immutable _CACHED_CHAIN_ID;
