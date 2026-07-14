@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
-// 0x75803bB336f50D4C95BADF72B9534cACEa95e9b0
+//
 pragma solidity ^0.8.20;
+
+import {IERC20, IERC20Permit} from "./PZZLBridgeCommon.sol";
 
 /// @title PZZLToken
 /// @notice ERC-20 token with EIP-2612 permit support, fixed initial supply of 10 billion PZZL.
-contract PZZLToken {
+contract PZZLToken is IERC20, IERC20Permit {
     string public constant name = "PZZL";
     string public constant symbol = "PZZL";
     uint8 public constant decimals = 18;
@@ -19,6 +21,10 @@ contract PZZLToken {
 
     bytes32 public constant PERMIT_TYPEHASH =
     keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    // secp256k1 curve order / 2 - upper bound for valid `s` (EIP-2 / malleability guard)
+    uint256 private constant _SECP256K1N_DIV_2 =
+    0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
 
     bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
     uint256 private immutable _CACHED_CHAIN_ID;
@@ -105,6 +111,10 @@ contract PZZLToken {
         bytes32 s
     ) external {
         if (block.timestamp > deadline) revert PermitExpired();
+
+        // EIP-2 malleability guard: reject the "upper" s and any v other than 27/28.
+        if (uint256(s) > _SECP256K1N_DIV_2) revert InvalidSignature();
+        if (v != 27 && v != 28) revert InvalidSignature();
 
         bytes32 structHash = keccak256(
             abi.encode(PERMIT_TYPEHASH, tokenOwner, spender, value, nonces[tokenOwner]++, deadline)
