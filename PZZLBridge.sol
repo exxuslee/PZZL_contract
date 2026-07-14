@@ -37,7 +37,7 @@ contract PZZLBridge is PZZLBridgeAdmin, PZZLBridgeHistory {
         reentrancyStatus = NOT_ENTERED;
     }
 
-    constructor(address initialPZZLTokenContract) PZZLBridgeAdmin(initialPZZLTokenContract) {
+    constructor(address initialPZZLToken) PZZLBridgeAdmin(initialPZZLToken) {
         reentrancyStatus = NOT_ENTERED;
     }
 
