@@ -3,7 +3,7 @@
 pragma solidity ^0.8.26;
 
 import {PZZLBridgeAdmin} from "./PZZLBridgeAdmin.sol";
-import {SafeERC20, IERC20, IERC20Permit} from "./PZZLBridgeCommon.sol";
+import {SafeERC20, IERC20, IERC20Permit} from "./PZZLCommon.sol";
 import {PZZLBridgeHistory} from "./PZZLBridgeHistory.sol";
 
 /// @title PZZLBridge

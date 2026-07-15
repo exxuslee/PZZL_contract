@@ -2,7 +2,7 @@
 //
 pragma solidity ^0.8.26;
 
-import {IERC20, IERC20Permit} from "./PZZLBridgeCommon.sol";
+import {IERC20, IERC20Permit} from "./PZZLCommon.sol";
 
 /// @title PZZLToken
 /// @notice ERC-20 token with EIP-2612 permit support, fixed initial supply of 10 billion PZZL.
